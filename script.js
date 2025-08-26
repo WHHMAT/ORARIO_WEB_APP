@@ -939,6 +939,17 @@ async function applyFilters() { // Mantenuto async per coerenza, anche se non c'
     const comboType = document.getElementById('combo-type-select')?.value || '';
     const valore1 = document.getElementById('combo-val1-select')?.value || '';
     const valore2 = document.getElementById('combo-val2-select')?.value || '';
+    const exportDocentBtn = document.getElementById('exportDocentBtn');
+
+    // Controlla se il pulsante esiste
+    if (exportDocentBtn) {
+        // Mostra il pulsante solo se è selezionato un singolo docente e nessun altro filtro
+        if (docente !== '' && !giorno && !classe && !materia && !comboType) {
+            exportDocentBtn.style.display = 'block';
+        } else {
+            exportDocentBtn.style.display = 'none';
+        }
+    }
 
     console.log(`Valori al momento della chiamata: Giorno='${giorno}', Docente='${docente}', Classe='${classe}', Materia='${materia}'`);
     console.log(`Valori al momento della chiamata: ComboType='${comboType}', Valore1='${valore1}', Valore2='${valore2}'`);
@@ -1210,6 +1221,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (absentDocentSelect) absentDocentSelect.addEventListener('change', searchSubstitutes);
     if (absentDaySelect) absentDaySelect.addEventListener('change', searchSubstitutes);
 
+    // Event listener per il nuovo pulsante di esportazione docente
+    const exportDocentBtn = document.getElementById('exportDocentBtn');
+    if (exportDocentBtn) {
+        exportDocentBtn.addEventListener('click', exportDocentScheduleToPdf);
+    }
 });
 
 
@@ -1443,6 +1459,116 @@ function resetSostituzioniFilters() {
     }
 
     console.log("Filtri sostituzioni resettati."); // Messaggio di debug
+}
+
+/**
+ * Genera e scarica un PDF con l'orario di un singolo docente.
+ * I dati sono estratti dall'orario completo.
+ */
+async function exportDocentScheduleToPdf() {
+    const { jsPDF } = window.jspdf;
+    const docentName = document.getElementById('docente-select')?.value;
+
+    if (!docentName) {
+        alert("Per favore, seleziona un docente per esportare il suo orario.");
+        return;
+    }
+
+    const doc = new jsPDF('portrait', 'pt', 'a4');
+    let yOffset = 40;
+    const margin = 20;
+
+    // Titolo del documento
+    doc.setFontSize(18);
+    doc.text(`Orario del Docente: ${docentName}`, doc.internal.pageSize.width / 2, yOffset, { align: "center" });
+    yOffset += 30;
+
+    // Estrai le lezioni del docente, raggruppandole per giorno
+    const docentSchedule = getDocentScheduleByDay(orarioCompletoRaw, docentName);
+    const sortedDays = Object.keys(docentSchedule).sort((a, b) => {
+        return getGiornoOrder(a) - getGiornoOrder(b);
+    });
+
+    // Loop sui giorni
+    for (const day of sortedDays) {
+        const lessons = docentSchedule[day];
+        if (lessons.length === 0) continue;
+
+        // Salto di pagina se non c'è abbastanza spazio per il prossimo blocco
+        if (yOffset > doc.internal.pageSize.height - 100) {
+            doc.addPage();
+            yOffset = 40;
+        }
+
+        // Sottotitolo per il giorno
+        doc.setFontSize(14);
+        doc.text(`${day}`, margin, yOffset);
+        yOffset += 20;
+
+        // Prepara i dati per la tabella di jsPDF-AutoTable
+        const headers = [['Ora', 'Materia', 'Classe']];
+        const body = lessons.map(lesson => [
+            lesson.ORA,
+            estraeMateriaFrontend(lesson.contenuto_cella),
+            estraeClasseDaHeader(lesson.classe_ora)
+        ]);
+
+        // Genera la tabella per il giorno corrente
+        doc.autoTable({
+            startY: yOffset,
+            head: headers,
+            body: body,
+            theme: 'striped',
+            styles: { fontSize: 9, cellPadding: 3 },
+            margin: { left: margin, right: margin }
+        });
+
+        // Aggiorna l'offset Y per la prossima tabella
+        yOffset = doc.autoTable.previous.finalY + 20;
+    }
+
+    // Salva il PDF
+    doc.save(`orario_docente_${docentName}.pdf`);
+    alert(`Orario del docente ${docentName} esportato con successo!`);
+}
+
+/**
+ * Funzione ausiliaria per estrarre le lezioni di un docente e raggrupparle per giorno.
+ */
+function getDocentScheduleByDay(orarioData, docentName) {
+    const schedule = {};
+    const docentNameUpper = normalizzaStringa(docentName);
+
+    for (const riga of orarioData) {
+        const giorno = normalizzaStringa(riga.GIORNO);
+        const ora = riga.ORE;
+
+        // Assicurati che il giorno sia una chiave nell'oggetto
+        if (!schedule[giorno]) {
+            schedule[giorno] = [];
+        }
+
+        // Itera su tutte le classi per trovare le lezioni del docente
+        for (const colonna in riga) {
+            if (colonna.startsWith('CLASSE')) {
+                const contenutoCella = riga[colonna];
+                if (typeof contenutoCella === 'string' && contenutoCella.trim()) {
+                    const singoleLezioni = contenutoCella.split('-');
+                    for (const lezioneStr of singoleLezioni) {
+                        const docentiLezione = estraeDocenti(lezioneStr);
+                        if (docentiLezione.includes(docentNameUpper)) {
+                            schedule[giorno].push({
+                                ORA: ora,
+                                contenuto_cella: lezioneStr,
+                                classe_ora: colonna
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return schedule;
 }
 
 
