@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orario Scolastico</title>
+    <link rel="stylesheet" href="style.css">
+     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Orario Scolastico</h1>
+
+        <div class="tabs">
+            <button class="tab-button active" data-tab="simpleFilters">Filtri Semplici</button>
+            <button class="tab-button" data-tab="combinedFilters">Filtri Combinati</button>
+            <button class="tab-button" data-tab="sostituzioniFilters">Sostituzioni</button>
+        </div>
+
+        <div id="simpleFilters" class="tab-content active">
+            <h2>Filtri Semplici</h2>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="giorno-select">Giorno:</label>
+                    <select id="giorno-select" class="filter-select">
+                        <option value="">Tutti</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="docente-select">Docente:</label>
+                    <select id="docente-select" class="filter-select">
+                        <option value="">Tutti</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="classe-select">Classe:</label>
+                    <select id="classe-select" class="filter-select">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="materia-select">Materia:</label>
+                    <select id="materia-select" class="filter-select">
+                        <option value="">Tutte</option>
+                    </select>
+                </div>
+                <button id="searchSimpleBtn" class="button-primary">Cerca</button>
+                <button id="resetSimpleBtn" class="button-secondary">Reset</button>
+            </div>
+        </div>
+
+        <div id="combinedFilters" class="tab-content">
+            <h2>Filtri Combinati</h2>
+            <div class="filters-grid">
+                <div class="filter-group">
+                    <label for="combo-type-select">Tipo Combinato:</label>
+                    <select id="combo-type-select" class="filter-select">
+                        <option value="">Seleziona tipo</option>
+                        <option value="Docente e Giorno">Docente e Giorno</option>
+                        <option value="Classe e Giorno">Classe e Giorno</option>
+                        <option value="Docente e Classe">Docente e Classe</option>
+                        <option value="Materia e Giorno">Materia e Giorno</option>
+                        <option value="Materia e Docente">Materia e Docente</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label id="combo-val1-label" for="combo-val1-select">Valore 1:</label>
+                    <select id="combo-val1-select" class="filter-select">
+                        <option value="">Seleziona</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label id="combo-val2-label" for="combo-val2-select">Valore 2:</label>
+                    <select id="combo-val2-select" class="filter-select">
+                        <option value="">Seleziona</option>
+                    </select>
+                </div>
+                <button id="searchCombinedBtn" class="button-primary">Cerca Combinato</button>
+                <button id="resetCombinedBtn" class="button-secondary">Reset Combinato</button>
+            </div>
+        </div>
+
+        <div id="sostituzioniFilters" class="tab-content">
+            <h2>Filtri Sostituzioni</h2> <div class="filters-grid"> <div class="filter-group">
+                    <label for="absent-docent-select">Docente Assente:</label>
+                    <select id="absent-docent-select" class="filter-select"></select>
+                </div>
+                <div class="filter-group">
+                    <label for="absent-day-select">Giorno Assenza:</label>
+                    <select id="absent-day-select" class="filter-select"></select>
+                </div>
+            </div>
+            <button id="searchSostituzioniBtn" class="button-primary">Cerca Sostituzioni</button>
+            <button id="resetSostituzioniBtn" class="button-secondary">Reset Sostituzioni</button>
+
+            <div id="sostituzioni-results">
+                <p id="sostituzioni-output-message"></p>
+                <div id="sostituzioni-table-container"></div>
+
+                 <div class="mt-4">
+                    <h3>Riepilogo Sostituzioni</h3>
+                    <textarea id="sostituzioni-text-output" class="form-control" rows="10" placeholder="Il riepilogo delle sostituzioni apparirà qui."></textarea>
+                    <small class="form-text text-muted">Puoi modificare il testo direttamente qui.</small>
+                </div>
+            </div>
+        </div>
+
+        <section id="results-section" class="mt-4" style="display: none;">
+            <button class="btn btn-success mb-3" onclick="exportToPdf()">Esporta Risultati in PDF</button>
+
+            <p id="output-message"></p>
+
+            <div id="prime-classes-section" class="class-group-section">
+                <h3>Classi Prime</h3>
+                <div id="prime-table-container"></div>
+            </div>
+
+            <div id="seconde-classes-section" class="class-group-section">
+                <h3>Classi Seconde</h3>
+                <div id="seconde-table-container"></div>
+            </div>
+
+            <div id="terze-classes-section" class="class-group-section">
+                <h3>Classi Terze</h3>
+                <div id="terze-table-container"></div>
+            </div>
+
+            <div id="altre-classes-section" class="class-group-section">
+                <h3>Altre Classi</h3>
+                <div id="altre-table-container"></div>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script src="orarioData.js"></script>
+<script src="script.js"></script>
+
+</body>
+</html>
